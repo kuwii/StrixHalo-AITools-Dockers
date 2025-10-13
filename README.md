@@ -14,7 +14,7 @@ The official ROCm related Docker images seem to have less support for Strix Halo
 
 Here are the versions of tools used by the images.
 
-- ROCm 7.0.1
+- ROCm 7.0.2
 - Python 3.12
 - PyTorch 2.9.0-rc9
 
@@ -22,7 +22,7 @@ Here are the versions of tools used by the images.
 
 You can run scripts in `build` to build the image needed:
 
-- `./build/rocm7.sh`: Build an image named `kuwii/strixhalo-rocm` that has ROCm installed.
+- `./build/rocm.sh`: Build an image named `kuwii/strixhalo-rocm` that has ROCm installed.
 - `./build/pytorch.sh`: Build an image named `kuwii/strixhalo-pytorch` that has ROCm and PyTorch installed.
 
 ## How to run images
@@ -54,6 +54,7 @@ import torch
 torch.cuda.get_device_name(0)
 
 # No error should be thrown
+device = torch.device("cuda")
 a = torch.randn(1000, 1000, device=device)
 b = torch.randn(1000, 1000, device=device)
 c = torch.mm(a, b)

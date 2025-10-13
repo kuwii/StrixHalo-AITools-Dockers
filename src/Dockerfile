@@ -8,7 +8,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get autoremove
 RUN apt-get install -y wget gpg
 RUN wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor | tee /etc/apt/keyrings/rocm.gpg > /dev/null
 # Register packages
-RUN printf "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.0.1 noble main\ndeb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/7.0.1/ubuntu noble main\n" \
+RUN printf "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.0.2 noble main\ndeb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/7.0.2/ubuntu noble main\n" \
     > /etc/apt/sources.list.d/rocm.list
 RUN printf "Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600" \
     > /etc/apt/preferences.d/rocm-pin-600
@@ -18,21 +18,18 @@ RUN apt-get install -y rocm
 # Set environment variables
 ENV PATH="/opt/rocm/bin:$PATH" LD_LIBRARY_PATH="/opt/rocm/lib"
 
-
-# ========================
-#  PyTorch 7 Docker Image
-# ========================
-FROM rocm as pytorch
-# Install dependencies.
-RUN apt-get install -y python-is-python3 python3 python3-venv git
-# fetch source code
+# =============================
+#  PyTorch 7 Source Code Image
+# =============================
+# This image is only used for fetching source code of PyTorch, since the process can be very time-consuming and unstable.
+FROM ubuntu:noble as src-pytorch
+RUN apt-get update && apt-get install -y git
 RUN git clone --branch v2.9.0-rc9 --single-branch --depth 1 https://github.com/pytorch/pytorch.git /usr/local/src/pytorch
 WORKDIR /usr/local/src/pytorch
-# fetch submodules
 RUN git submodule sync
-# because there are so many submodules, try to init them with small batches, so that if some failed, most initialized modules can still be reused.
-# this is because this process may not be very stable, randomly failing on any submodule.
-# source: https://github.com/pytorch/pytorch/blob/v2.9.0-rc9/.gitmodules
+# Because there are so many submodules, try to init them with small batches, so that if some failed, most initialized modules can still be reused.
+# This is because this process may not be very stable, randomly failing on any submodule.
+# Source: https://github.com/pytorch/pytorch/blob/v2.9.0-rc9/.gitmodules
 RUN git submodule update --init --recursive --depth=1 third_party/pybind11
 RUN git submodule update --init --recursive --depth=1 third_party/googletest
 RUN git submodule update --init --recursive --depth=1 third_party/benchmark
@@ -70,21 +67,31 @@ RUN git submodule update --init --recursive --depth=1 third_party/composable_ker
 RUN git submodule update --init --recursive --depth=1 third_party/kleidiai
 RUN git submodule update --init --recursive --depth=1 third_party/flash-attention
 RUN git submodule update --init --recursive --depth=1 third_party/aiter
-# update is there's any other submodule missing.
+# Update is there's any other submodule missing.
 RUN git submodule update --init --recursive --depth=1 
-# Create and use virtual environment
+
+# ========================
+#  PyTorch 7 Docker Image
+# ========================
+FROM rocm as pytorch
+# Install dependencies.
+RUN apt-get install -y python-is-python3 python3 python3-venv git
+# Create and use virtual environment.
 RUN python -m venv /usr/local/lib/pytorch-venv && chmod +x /usr/local/lib/pytorch-venv/bin/activate
 ENV PATH="/usr/local/lib/pytorch-venv/bin:$PATH"
 RUN python -m pip install --upgrade pip
-# Set ROCm architecture
+# Set ROCm architecture.
 ENV PYTORCH_ROCM_ARCH=gfx1151
-# Install dependencies
+# Copy source code from source code image
+COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
+WORKDIR /usr/local/src/pytorch
+# Install dependencies.
 RUN pip install --group dev
 RUN pip install mkl-static mkl-include
 RUN make triton
-# Setup AMD environment
+# Setup AMD environment.
 RUN python tools/amd_build/build_amd.py
-# Build PyTorch
+# Build PyTorch.
 RUN python -m pip install --no-build-isolation -v -e .
-# Setup workdir
+# Setup workdir.
 WORKDIR /root
