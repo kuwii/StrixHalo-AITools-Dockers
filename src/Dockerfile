@@ -24,7 +24,7 @@ ENV PATH="/opt/rocm/bin:$PATH" LD_LIBRARY_PATH="/opt/rocm/lib"
 # This image is only used for fetching source code of PyTorch, since the process can be very time-consuming and unstable.
 FROM ubuntu:noble as src-pytorch
 RUN apt-get update && apt-get install -y git
-RUN git clone --branch v2.9.0-rc9 --single-branch --depth 1 https://github.com/pytorch/pytorch.git /usr/local/src/pytorch
+RUN git clone --branch v2.9.0 --single-branch --depth 1 https://github.com/pytorch/pytorch.git /usr/local/src/pytorch
 WORKDIR /usr/local/src/pytorch
 RUN git submodule sync
 # Because there are so many submodules, try to init them with small batches, so that if some failed, most initialized modules can still be reused.
@@ -81,7 +81,8 @@ RUN python -m venv /usr/local/lib/pytorch-venv && chmod +x /usr/local/lib/pytorc
 ENV PATH="/usr/local/lib/pytorch-venv/bin:$PATH"
 RUN python -m pip install --upgrade pip
 # Set ROCm architecture.
-ENV PYTORCH_ROCM_ARCH=gfx1151
+ENV PYTORCH_ROCM_ARCH=gfx1151 \
+    USE_ROCM=1
 # Copy source code from source code image
 COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
 WORKDIR /usr/local/src/pytorch
