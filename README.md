@@ -16,7 +16,7 @@ Here are the versions of tools used by the images.
 
 - ROCm 7.0.2
 - Python 3.12
-- PyTorch 2.9.0-rc9
+- PyTorch 2.9.0
 
 ## How to build images
 

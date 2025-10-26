@@ -1,11 +1,16 @@
+# ============
+#  Base Image
+# ============
+FROM ubuntu:noble as ubuntu-base
+RUN apt-get update \
+ && apt-get upgrade -y \
+ && apt-get install -y curl git gpg wget \
+ && apt-get autoremove -y
+
 # =====================
 #  ROCm 7 Docker Image
 # =====================
-FROM ubuntu:noble as rocm
-# Initialize base environment.
-RUN apt-get update && apt-get upgrade -y && apt-get autoremove
-# Download and convert the package signing key.
-RUN apt-get install -y wget gpg
+FROM ubuntu-base as rocm
 RUN wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor | tee /etc/apt/keyrings/rocm.gpg > /dev/null
 # Register packages
 RUN printf "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.0.2 noble main\ndeb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/7.0.2/ubuntu noble main\n" \
@@ -18,12 +23,20 @@ RUN apt-get install -y rocm
 # Set environment variables
 ENV PATH="/opt/rocm/bin:$PATH" LD_LIBRARY_PATH="/opt/rocm/lib"
 
+# =============================================
+#  ROCm 7 Docker Image with Python Environment
+# =============================================
+FROM rocm as rocm-python
+RUN apt-get install -y python-is-python3 python3 python3-venv
+RUN python -m venv "/usr/local/lib/python-env" --system-site-packages \
+ && chmod +x "/usr/local/lib/python-env/bin/activate"
+ENV PATH="/usr/local/lib/python-env/bin:$PATH"
+RUN python -m pip install --upgrade pip
+
 # =============================
 #  PyTorch 7 Source Code Image
 # =============================
-# This image is only used for fetching source code of PyTorch, since the process can be very time-consuming and unstable.
-FROM ubuntu:noble as src-pytorch
-RUN apt-get update && apt-get install -y git
+FROM ubuntu-base as src-pytorch
 RUN git clone --branch v2.9.0 --single-branch --depth 1 https://github.com/pytorch/pytorch.git /usr/local/src/pytorch
 WORKDIR /usr/local/src/pytorch
 RUN git submodule sync
@@ -73,18 +86,12 @@ RUN git submodule update --init --recursive --depth=1
 # ========================
 #  PyTorch 7 Docker Image
 # ========================
-FROM rocm as pytorch
-# Install dependencies.
-RUN apt-get install -y python-is-python3 python3 python3-venv git
-# Create and use virtual environment.
-RUN python -m venv /usr/local/lib/pytorch-venv && chmod +x /usr/local/lib/pytorch-venv/bin/activate
-ENV PATH="/usr/local/lib/pytorch-venv/bin:$PATH"
-RUN python -m pip install --upgrade pip
+FROM rocm-python as pytorch
+COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
 # Set ROCm architecture.
 ENV PYTORCH_ROCM_ARCH=gfx1151 \
-    USE_ROCM=1
-# Copy source code from source code image
-COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
+    USE_ROCM=1 \
+    USE_TRITON=1
 WORKDIR /usr/local/src/pytorch
 # Install dependencies.
 RUN pip install --group dev
@@ -96,3 +103,8 @@ RUN python tools/amd_build/build_amd.py
 RUN python -m pip install --no-build-isolation -v -e .
 # Setup workdir.
 WORKDIR /root
+# Enable AOTriton
+ENV TORCHINDUCTOR_AOTRITON_ENABLED=1 \
+    TORCHINDUCTOR_AUTOTUNE=0 \
+    TORCHINDUCTOR_MAX_AUTOTUNE=0
+
