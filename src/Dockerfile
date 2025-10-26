@@ -37,9 +37,9 @@ RUN python -m venv "/usr/local/lib/python-env" --system-site-packages \
 ENV PATH="/usr/local/lib/python-env/bin:$PATH"
 RUN python -m pip install --upgrade pip
 
-# =============================
-#  PyTorch 7 Source Code Image
-# =============================
+# ===========================
+#  PyTorch Source Code Image
+# ===========================
 FROM ubuntu-base as src-pytorch
 RUN git clone --branch v2.9.0 --single-branch --depth 1 https://github.com/pytorch/pytorch.git /usr/local/src/pytorch
 WORKDIR /usr/local/src/pytorch
@@ -87,10 +87,19 @@ RUN git submodule update --init --recursive --depth=1 third_party/aiter
 # Update is there's any other submodule missing.
 RUN git submodule update --init --recursive --depth=1 
 
-# ========================
-#  PyTorch 7 Docker Image
-# ========================
+# ===============================
+#  torchvision Source Code Image
+# ===============================
+FROM ubuntu-base as src-torchvision
+RUN git clone --branch release/0.24 --single-branch --depth 1 https://github.com/pytorch/vision.git /usr/local/src/torchvision
+
+# ======================
+#  PyTorch Docker Image
+# ======================
 FROM rocm-python as pytorch
+# -----------------
+#  Install PyTorch
+# -----------------
 COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
 # Set ROCm architecture.
 ENV PYTORCH_ROCM_ARCH=gfx1151 \
@@ -109,7 +118,16 @@ RUN make triton
 RUN python tools/amd_build/build_amd.py
 # Build PyTorch.
 RUN python -m pip install --no-build-isolation -v -e .
-# Setup workdir.
+# ---------------------
+#  Install torchvision
+# ---------------------
+COPY --from=src-torchvision /usr/local/src/torchvision /usr/local/src/torchvision
+RUN apt-get install -y libpng-dev libjpeg-turbo8-dev libwebp-dev
+ENV TORCHVISION_CUDA_ARCH_LIST="gfx1151" \
+    FORCE_CUDA=1
+WORKDIR /usr/local/src/torchvision
+RUN pip install . --no-build-isolation
+#  Setup workdir.
 WORKDIR /root
 
 # =============================
@@ -119,3 +137,8 @@ FROM pytorch as pytorch-test
 RUN wget https://raw.githubusercontent.com/lhl/strix-halo-testing/refs/heads/main/torch-therock/test-pytorch-flashattention.py \
  && chmod +x test-pytorch-flashattention.py
 CMD /root/test-pytorch-flashattention.py
+
+# ===================
+#  vLLM Docker Image
+# ===================
+FROM pytorch as vllm
