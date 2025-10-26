@@ -4,7 +4,7 @@ This is a collection of some Dockerfiles which can build AI tools images for Str
 
 ## Notice
 
-This is just a personal work for daily use, so it is not optimized enough for heavy works.
+This is just a personal work for daily use, so it is not optimized enough for heavy works, and may not always work.
 
 ## Why
 
@@ -20,10 +20,15 @@ Here are the versions of tools used by the images.
 
 ## How to build images
 
-You can run scripts in `build` to build the image needed:
+You can run scripts in `build` to build the following image:
 
-- `./build/rocm.sh`: Build an image named `kuwii/strixhalo-rocm` that has ROCm installed.
-- `./build/pytorch.sh`: Build an image named `kuwii/strixhalo-pytorch` that has ROCm and PyTorch installed.
+| Script | Image Name | Environment |
+|  ----  | ---------  | ----------- |
+| `./build/rocm.sh` | `kuwii/strixhalo-rocm` | Base Ubuntu image with ROCm installed. |
+| `./build/rocm-python.sh` | `kuwii/strixhalo-rocm-python` | ROCm with Python environment. |
+| `./build/src-pytorch.sh` | `kuwii/strixhalo-src-pytorch` | Base Ubuntu image with source code of PyTorch. |
+| `./build/pytorch.sh` | `kuwii/strixhalo-pytorch` | ROCm + PyTorch environment. |
+| `./build/pytorch-test.sh` | `kuwii/strixhalo-pytorch-test` | A quick test to validate the built PyTorch environment through `./bin/test-pytorch`. |
 
 ## How to run images
 

@@ -21,7 +21,11 @@ RUN apt-get update
 # Install ROCm
 RUN apt-get install -y rocm
 # Set environment variables
-ENV PATH="/opt/rocm/bin:$PATH" LD_LIBRARY_PATH="/opt/rocm/lib"
+ENV PATH="/opt/rocm/bin:$PATH" \
+    LD_LIBRARY_PATH="/opt/rocm/lib" \
+    ROCM_PATH=/opt/rocm-7.0.2 \
+    HIP_PATH=/opt/rocm-7.0.2 \
+    HIP_PLATFORM=amd
 
 # =============================================
 #  ROCm 7 Docker Image with Python Environment
@@ -91,7 +95,11 @@ COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
 # Set ROCm architecture.
 ENV PYTORCH_ROCM_ARCH=gfx1151 \
     USE_ROCM=1 \
-    USE_TRITON=1
+    USE_TRITON=1 \
+    TORCHINDUCTOR_AOTRITON_ENABLED=1 \
+    TORCHINDUCTOR_AUTOTUNE=0 \
+    TORCHINDUCTOR_MAX_AUTOTUNE=0 \
+    TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
 WORKDIR /usr/local/src/pytorch
 # Install dependencies.
 RUN pip install --group dev
@@ -103,8 +111,11 @@ RUN python tools/amd_build/build_amd.py
 RUN python -m pip install --no-build-isolation -v -e .
 # Setup workdir.
 WORKDIR /root
-# Enable AOTriton
-ENV TORCHINDUCTOR_AOTRITON_ENABLED=1 \
-    TORCHINDUCTOR_AUTOTUNE=0 \
-    TORCHINDUCTOR_MAX_AUTOTUNE=0
 
+# =============================
+#  PyTorch 7 Test Docker Image
+# =============================
+FROM pytorch as pytorch-test
+RUN wget https://raw.githubusercontent.com/lhl/strix-halo-testing/refs/heads/main/torch-therock/test-pytorch-flashattention.py \
+ && chmod +x test-pytorch-flashattention.py
+CMD /root/test-pytorch-flashattention.py
