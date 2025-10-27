@@ -138,7 +138,34 @@ RUN wget https://raw.githubusercontent.com/lhl/strix-halo-testing/refs/heads/mai
  && chmod +x test-pytorch-flashattention.py
 CMD /root/test-pytorch-flashattention.py
 
+# ========================
+#  vLLM Source Code Image
+# ========================
+FROM ubuntu-base as src-vllm
+RUN git clone --branch v0.11.1rc3 --single-branch --depth 1 https://github.com/vllm-project/vllm.git /usr/local/src/vllm
+
 # ===================
 #  vLLM Docker Image
 # ===================
 FROM pytorch as vllm
+RUN pip install ninja cmake wheel pybind11 \
+ && pip install /opt/rocm/share/amd_smi \
+ && pip install --upgrade numba scipy huggingface-hub[cli,hf_transfer] setuptools_scm \
+ && pip install "numpy<2"
+ENV VLLM_USE_TRITON_FLASH_ATTN=0 \
+    PYTORCH_ROCM_ARCH="gfx1151"
+COPY --from=src-vllm /usr/local/src/vllm /usr/local/src/vllm
+WORKDIR /usr/local/src/vllm
+# Install a fake triton library since we already have pytorch-triton.
+RUN mkdir /tmp/triton \
+ && echo 'from setuptools import setup\nsetup(name="triton",version="3.5.0")' > /tmp/triton/setup.py \
+ && (cd /tmp/triton && pip install .) \
+ && rm -r /tmp/triton
+# Install dependencies
+RUN pip install -r ./requirements/rocm.txt
+# Build vLLM
+RUN python3 setup.py develop
+# Configuration
+RUN mkdir -p /cache/huggingface/hub
+ENV HF_HOME=/cache/huggingface \
+    HUGGINGFACE_HUB_CACHE=/cache/huggingface/hub

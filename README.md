@@ -29,6 +29,7 @@ You can run scripts in `build` to build the following image:
 | `./build/src-pytorch.sh` | `kuwii/strixhalo-src-pytorch` | Base Ubuntu image with source code of PyTorch. |
 | `./build/pytorch.sh` | `kuwii/strixhalo-pytorch` | ROCm + PyTorch environment. |
 | `./build/pytorch-test.sh` | `kuwii/strixhalo-pytorch-test` | A quick test to validate the built PyTorch environment through `./bin/test-pytorch`. |
+| `./build/vllm.sh` | `kuwii/strixhalo-vllm` | vLLM based on ROCm. |
 
 ## How to run images
 
