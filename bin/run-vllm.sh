@@ -10,6 +10,7 @@ docker run -it --rm \
   --security-opt seccomp=unconfined \
   --security-opt apparmor=unconfined \
   --cap-add=SYS_PTRACE \
-  --name strixhalo-vllm \
   -v ~/.cache/strixhalo-aitools-dockers/vllm:/cache \
+  -p 8000:8000 \
+  --name strixhalo-vllm \
   kuwii/strixhalo-vllm:latest
