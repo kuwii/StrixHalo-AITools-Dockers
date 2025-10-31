@@ -142,7 +142,7 @@ CMD /root/test-pytorch-flashattention.py
 #  vLLM Source Code Image
 # ========================
 FROM ubuntu-base as src-vllm
-RUN git clone --branch v0.11.1rc3 --single-branch --depth 1 https://github.com/vllm-project/vllm.git /usr/local/src/vllm
+RUN git clone --branch v0.11.1rc5 --single-branch --depth 1 https://github.com/vllm-project/vllm.git /usr/local/src/vllm
 
 # ===================
 #  vLLM Docker Image
