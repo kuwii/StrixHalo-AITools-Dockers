@@ -27,7 +27,7 @@ RUN git clone --branch ${TRITON_VERSION} --single-branch --depth 1 ${TRITON_REPO
 # ===========================
 FROM ubuntu-base as src-pytorch
 
-ARG PYTORCH_REPO="https://github.com/ROCm/pytorch.git"
+ARG PYTORCH_REPO="https://github.com/pytorch/pytorch.git"
 ARG PYTORCH_VERSION="v2.9.0"
 
 ENV PYTORCH_HOME="/usr/local/src/pytorch"
