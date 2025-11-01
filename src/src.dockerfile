@@ -31,9 +31,6 @@ ARG PYTORCH_REPO="https://github.com/ROCm/pytorch.git"
 ARG PYTORCH_VERSION="v2.9.0"
 
 ENV PYTORCH_HOME="/usr/local/src/pytorch"
-RUN apt-get update \
- && apt-get upgrade -y \
- && apt-get install -y git
 RUN git clone --branch ${PYTORCH_VERSION} --single-branch --depth 1 ${PYTORCH_REPO} "${PYTORCH_HOME}" \
  && cd "${PYTORCH_HOME}" \
  && git submodule update --init --recursive --depth=1 \
