@@ -98,10 +98,10 @@ RUN git clone --branch ${VLLM_VERSION} --single-branch --depth 1 ${VLLM_REPO} "$
  && rm -rf ./.git
 
 
-# ========================
-#  vLLM Source Code Image
-# ========================
-FROM ubuntu-base as src-vllm
+# ==============================
+#  Aggregated Source Code Image
+# ==============================
+FROM ubuntu-base as src
 
 COPY --from=src-triton /usr/local/src/triton /usr/local/src/triton
 COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
