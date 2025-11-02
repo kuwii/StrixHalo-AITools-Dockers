@@ -96,3 +96,16 @@ ENV VLLM_HOME="/usr/local/src/vllm"
 RUN git clone --branch ${VLLM_VERSION} --single-branch --depth 1 ${VLLM_REPO} "${VLLM_HOME}" \
  && cd "${VLLM_HOME}" \
  && rm -rf ./.git
+
+
+# ========================
+#  vLLM Source Code Image
+# ========================
+FROM ubuntu-base as src-vllm
+
+COPY --from=src-triton /usr/local/src/triton /usr/local/src/triton
+COPY --from=src-pytorch /usr/local/src/pytorch /usr/local/src/pytorch
+COPY --from=src-torchvision /usr/local/src/torchvision /usr/local/src/torchvision
+COPY --from=src-flash-attention /usr/local/src/flash-attention /usr/local/src/flash-attention
+COPY --from=src-aiter /usr/local/src/aiter /usr/local/src/aiter
+COPY --from=src-vllm /usr/local/src/vllm /usr/local/src/vllm
